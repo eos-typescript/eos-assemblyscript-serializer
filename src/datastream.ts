@@ -20,17 +20,17 @@ export class DataStream {
       	*  @brief Skips a specific number of bytes from this stream
       	*  @param s The number of bytes to skip
       	*/
-	function skip(s: usize): void{
-		pos += s;
+	skip(s: usize): void{
+		this.pos += s;
 	}
-	function read(destptr: usize, len: usize): void{
+	read(destptr: usize, len: usize): void{
 		//eosio_assert( size_t(_end - _pos) >= (size_t)s, "read" );
 		copy_memory(pos, destptr, len);
-		pos += len;
+		this.pos += len;
 	}
 
 	//Thank you eosargentina
-	function  readVarint32(): u32 {
+	readVarint32(): u32 {
     		var value: u32 = 0;
     		var shift: u32 = 0;
     		do {
@@ -41,7 +41,7 @@ export class DataStream {
 	}
 	
 	//All hail eosargentina
-	function  writeVarint32(value: u32): void {
+	writeVarint32(value: u32): void {
     		do {
       			let b: u8  = <u8>value & <u8>0x7f;
       			value >>= 7;
@@ -51,42 +51,41 @@ export class DataStream {
   	}
 
 	//should probably replace this to u8 write
-	function write<T>(val: T): void{
+	write<T>(val: T): void{
 		//eosio_assert( _pos < _end, "put" );
-		store<T>(pos, val);
-		pos += sizeof<val>();
+		this.store<T>(pos, val);
+		this.pos += sizeof<val>();
 	}
 
-	//should probably replace this with u8 read
-	function read<T>(): T{
+	read(): u8{
 		//eosio_assert( _pos < _end, "get" );
 		let value: T = load<u8>(pos);
-		pos += 1;
+		this.pos += sizeof(1);
 		return value;
 	}
 
-	function writeBool(b: bool): void{
-		ds.write<u8>(<u8>b);
+	writeBool(b: bool): void{
+		this.write<u8>(<u8>b);
 	}
 
-	function readBool(): bool {
-		return read<u8>() != 0;
+	readBool(): bool {
+		return this.read<u8>() != 0;
 	}
 	
-	function writeString(s: string): void {
-		write(s.lengthUTF8());
+	writeString(s: string): void {
+		this.write(s.lengthUTF8());
 		if(s == "") return;
 		copy_memory(this.pos, s.toUTF8(), s.lengthUTF8());
 	}
 
 	//Oh mighty eosargentina
-	function readString(): string {
+	readString(): string {
 		var len = this.readVarint32();
     		if(len == 0) return "";
     		let s = allocate(len);
     		for(i: u32; i < len; i++){
 			var b : u16 = this.read<u8>();
-      			store<u16>(<usize>s + 2*i , b, HEADER_SIZE);
+      			this.store<u16>(<usize>s + 2*i , b, HEADER_SIZE);
 		}
 		return s;
 	}
@@ -94,20 +93,20 @@ export class DataStream {
 	//Praise eosargentina
 	//Does this work with nonprimitives?
 	//May need arr to be T?
-	function writeVector<T>(arr: T[], len: u32): void {
+	writeVector<T>(arr: T[], len: u32): void {
 		this.writeVarint32(len);
-		writeArray(arr);
+		this.writeArray(arr);
 	}
 	
 	//Thanks to the allmighty eosargentina!
 	//Don't think this works with non primitives though
 	//May need to return T?
-	function readVector<T>(): T[] {
+	readVector<T>(): T[] {
 		let len = this.readVarint32();
-		return readArray<T>(len);
+		return this.readArray<T>(len);
 	}
 
-	function readArray<T>(len: u32): T[]{
+	readArray<T>(len: u32): T[]{
 		if( len == 0 ) return new Array<T>();
                 let arr = new Array<T>(len);
                 for(var i: u32 = 0; i < len; i++){
@@ -116,19 +115,19 @@ export class DataStream {
                 return arr;
 	}
 
-	function writeArray<T>(arr: T[]): void {
+	writeArray<T>(arr: T[]): void {
 		 for(item as arr)
                         this.write<T>(item);	
 	}
 
-	function writeObject<T>(obj: T): void{
+	writeObject<T>(obj: T): void{
 		for(val: Object.values(obj)) {
 			this.write(val);//type problem?
 		}
 	}
 	
 	//different signature than other reads, perhaps change it
-	function readObject<T>(obj: T): void {
+	readObject<T>(obj: T): void {
 		for(val: Object.values(obj)){
 			
 		}
