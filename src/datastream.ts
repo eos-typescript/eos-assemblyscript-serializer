@@ -31,10 +31,10 @@ export class DataStream {
 
 	//Thank you eosargentina
 	readVarint32(): u32 {
-    		var value: u32 = 0;
-    		var shift: u32 = 0;
+    		let value: u32 = 0;
+    		let shift: u32 = 0;
     		do {
-      			var b = this.read<u8>();
+      			let b = this.read<u8>();
       			value |= <u32>(b & 0x7f) << (7 * shift++);
     		} while (b & 0x80);
     		return value;
@@ -80,11 +80,11 @@ export class DataStream {
 
 	//Oh mighty eosargentina
 	readString(): string {
-		var len = this.readVarint32();
+		let len: i32 = this.readVarint32();
     		if(len == 0) return "";
     		let s = allocate(len);
-    		for(i: u32; i < len; i++){
-			var b : u16 = this.read<u8>();
+		for(let i: u32 = 0; i < len; i++){
+			let b : u16 = this.read<u8>();
       			this.store<u16>(<usize>s + 2*i , b, HEADER_SIZE);
 		}
 		return s;
@@ -93,8 +93,8 @@ export class DataStream {
 	//Praise eosargentina
 	//Does this work with nonprimitives?
 	//May need arr to be T?
-	writeVector<T>(arr: T[], len: u32): void {
-		this.writeVarint32(len);
+	writeVector<T>(arr: T[]): void {
+		this.writeVarint32(arr.length);
 		this.writeArray(arr);
 	}
 	
@@ -109,26 +109,25 @@ export class DataStream {
 	readArray<T>(len: u32): T[]{
 		if( len == 0 ) return new Array<T>();
                 let arr = new Array<T>(len);
-                for(var i: u32 = 0; i < len; i++){
+                for(let i: u32 = 0; i < len; i++){
                         arr[i] = this.read<T>();
                 }
                 return arr;
 	}
 
 	writeArray<T>(arr: T[]): void {
-		 for(item as arr)
-                        this.write<T>(item);	
+		for(let i: u32 = 0; i < arr.length; i++)
+                        this.write<T>(arr[i]);	
 	}
-
+		
 	writeObject<T>(obj: T): void{
-		for(val: Object.values(obj)) {
+		for(let val of Object.values()) {
 			this.write(val);//type problem?
-		}
 	}
 	
 	//different signature than other reads, perhaps change it
 	readObject<T>(obj: T): void {
-		for(val: Object.values(obj)){
+		for(let val of Object.values(obj)){
 			
 		}
 	}
