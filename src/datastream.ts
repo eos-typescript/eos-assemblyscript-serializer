@@ -1,8 +1,7 @@
 //Documentation: https://github.com/EOSIO/eos/blob/48ee386b3ab91b00fbe5342314a7d3ae5fd9bdc2/contracts/eosiolib/datastream.hpp
 //Class stuff: https://github.com/EOSIO/eos/blob/48ee386b3ab91b00fbe5342314a7d3ae5fd9bdc2/contracts/eosiolib/datastream.hpp#L459
-import { HEADER_SIZE, allocate } from "~lib/internal/string";
 
-import {string2cstr, toUTF8Array} from "./utils";
+import { HEADER_SIZE, allocate } from "~lib/internal/string";
 
 export class DataStream {
 	start: usize;
@@ -97,8 +96,7 @@ export class DataStream {
 	//May need arr to be T?
 	function writeVector<T>(arr: T[], len: u32): void {
 		this.writeVarint32(len);
-		for(item as arr)
-			write<T>(item);
+		writeArray(arr);
 	}
 	
 	//Thanks to the allmighty eosargentina!
@@ -106,16 +104,55 @@ export class DataStream {
 	//May need to return T?
 	function readVector<T>(): T[] {
 		let len = this.readVarint32();
-		if( len == 0 ) return new Array<T>();
-		let arr = new Array<T>(len);
-		for(var i : u32 = 0; i < len; i++){
-      			arr[i] = read<T>();
-		}
-    		return arr;
+		return readArray<T>(len);
 	}
-	function readArray
-	//TODO: Sets
-	//TODO: Maps
+
+	function readArray<T>(len: u32): T[]{
+		if( len == 0 ) return new Array<T>();
+                let arr = new Array<T>(len);
+                for(var i: u32 = 0; i < len; i++){
+                        arr[i] = this.read<T>();
+                }
+                return arr;
+	}
+
+	function writeArray<T>(arr: T[]): void {
+		 for(item as arr)
+                        this.write<T>(item);	
+	}
+
+	function writeObject<T>(obj: T): void{
+		for(val: Object.values(obj)) {
+			this.write(val);//type problem?
+		}
+	}
+	
+	//different signature than other reads, perhaps change it
+	function readObject<T>(obj: T): void {
+		for(val: Object.values(obj)){
+			
+		}
+	}
+
+	//The AssemblyScript map implementation is too bad for now: https://github.com/AssemblyScript/assemblyscript/blob/master/std/assembly/map.ts
+	/*function writeMap<K, V>(m: Map<K, V>): void{
+	*	this.writeVarint32(m.size());
+	*	for(key as m.__keys){
+	*		this.write<K>(key);
+	*		this.write<V>(m.get(key));
+	*	}
+	*
+	*}
+	*
+	*function readMap<K, V>(): Map<K,V> {
+	*	let m = new Map<K, V>();
+	*	let len = this.readVarint32();		
+	*	for(var i: u32; i < len; i++){
+	*		m.set(this.read<K>(), this.read<V>());//Not sure if read<K> is guaranteed to execute first here
+	*	}
+	*}
+	*/
+	//TODO: Sets 
 	//TODO: Flat_sets
 	//TODO: Flat_maps
 	//TODO: Tuples
