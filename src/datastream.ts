@@ -1,5 +1,6 @@
 //Documentation: https://github.com/EOSIO/eos/blob/48ee386b3ab91b00fbe5342314a7d3ae5fd9bdc2/contracts/eosiolib/datastream.hpp
 //Class stuff: https://github.com/EOSIO/eos/blob/48ee386b3ab91b00fbe5342314a7d3ae5fd9bdc2/contracts/eosiolib/datastream.hpp#L459
+//Parts of this class are inspired by eosargentina, thank you.
 
 import { HEADER_SIZE, allocate } from "~lib/internal/string";
 
@@ -23,46 +24,44 @@ export class DataStream {
 	skip(s: usize): void{
 		this.pos += s;
 	}
-	read(destptr: usize, len: usize): void{
+	readToDest(destptr: usize, len: usize): void{
 		//eosio_assert( size_t(_end - _pos) >= (size_t)s, "read" );
 		copy_memory(pos, destptr, len);
 		this.pos += len;
 	}
 
-	//Thank you eosargentina
 	readVarint32(): u32 {
     		let value: u32 = 0;
-    		let shift: u32 = 0;
+		let shift: u32 = 0;
+		let b: u8 = 0;
     		do {
-      			let b = this.read<u8>();
+      			b = this.read<u8>();
       			value |= <u32>(b & 0x7f) << (7 * shift++);
     		} while (b & 0x80);
     		return value;
 	}
 	
-	//All hail eosargentina
 	writeVarint32(value: u32): void {
     		do {
-      			let b: u8  = <u8>value & <u8>0x7f;
+      			let b: u8 = <u8>value & <u8>0x7f;
       			value >>= 7;
       			b |= ((value > 0 ? 1 : 0) << 7);
-      		this.store<u8>(b);
+      			this.write<u8>(b);
     		} while( value );
   	}
 
 	//should probably replace this to u8 write
 	write<T>(val: T): void{
 		//eosio_assert( _pos < _end, "put" );
-		this.store<T>(pos, val);
-		this.pos += sizeof<val>();
+		store<T>(pos, val);
+		this.pos += sizeof<T>();
 	}
-
-	read(): u8{
-		//eosio_assert( _pos < _end, "get" );
-		let value: T = load<u8>(pos);
-		this.pos += sizeof(1);
+	read<T>(): T {
+		let value: T = load<T>(this.pos);
+		this.pos += sizeof<T>();
 		return value;
 	}
+
 
 	writeBool(b: bool): void{
 		this.write<u8>(<u8>b);
@@ -73,24 +72,22 @@ export class DataStream {
 	}
 	
 	writeString(s: string): void {
-		this.write(s.lengthUTF8());
+		this.writeVarint32(s.lengthUTF8() -1);//not sure about the minus 1 yet
 		if(s == "") return;
 		copy_memory(this.pos, s.toUTF8(), s.lengthUTF8());
 	}
-
-	//Oh mighty eosargentina
 	readString(): string {
-		let len: i32 = this.readVarint32();
+		let len: u32 = this.readVarint32();
+		//let len: u32 = this.read<u32>();
     		if(len == 0) return "";
     		let s = allocate(len);
 		for(let i: u32 = 0; i < len; i++){
-			let b : u16 = this.read<u8>();
-      			this.store<u16>(<usize>s + 2*i , b, HEADER_SIZE);
+			let b: u16 = this.read<u8>();
+      			store<u16>(<usize>s + 2*i , b, HEADER_SIZE);
 		}
 		return s;
 	}
 
-	//Praise eosargentina
 	//Does this work with nonprimitives?
 	//May need arr to be T?
 	writeVector<T>(arr: T[]): void {
@@ -98,7 +95,6 @@ export class DataStream {
 		this.writeArray(arr);
 	}
 	
-	//Thanks to the allmighty eosargentina!
 	//Don't think this works with non primitives though
 	//May need to return T?
 	readVector<T>(): T[] {
@@ -119,16 +115,19 @@ export class DataStream {
 		for(let i: u32 = 0; i < arr.length; i++)
                         this.write<T>(arr[i]);	
 	}
-		
+
+	//todo:
 	writeObject<T>(obj: T): void{
-		for(let val of Object.values()) {
-			this.write(val);//type problem?
+		for(let i: u32 = 0; i < Object.values(obj).length; i++){
+
+		}
 	}
-	
+	//todo:
 	//different signature than other reads, perhaps change it
 	readObject<T>(obj: T): void {
-		for(let val of Object.values(obj)){
-			
+		let vals = Object.values(obj);
+        	for(let i: u32 = 0; i < vals.length; i++){
+			obj[i] = vals[i];
 		}
 	}
 
